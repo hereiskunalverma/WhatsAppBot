@@ -66,4 +66,4 @@ myenv/Scripts/activate
 | Command |                Feature           |
 | :-----------: | :--------------------------------: |
 |       contest       | List of upcoming contest from **Codeforces**, **CodeChef** and **LeetCode** held to be in 24 hours          |
-        random chat   | A bot using DialogFlow will talk to you randomly. Currently it tells your the joke
+|       random chat   | A basic conversational bot which tells you just joke for now. |
