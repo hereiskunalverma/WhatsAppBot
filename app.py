@@ -23,7 +23,39 @@ def getContest():
     data = r.json()
     contests = []
     for i in data:
-        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode'] and i['in_24_hours'] == "Yes":
+        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode']:
+            contests.append(i)
+
+    final_contest_list = list()
+    for i in contests:
+        contest_time = datetime.strptime(
+            i['start_time'], '%Y-%m-%dT%H:%M:%S.%fz')
+        now_time = datetime.now()
+        if (contest_time.day >= now_time.day and contest_time.month >= now_time.month and contest_time.year >= now_time.year):
+            now_asia = contest_time.astimezone(timezone('Asia/Kolkata'))
+            # we need to strip 'Z' before parsing
+            d = datetime.fromisoformat(
+                i['start_time'][:-1]).replace(tzinfo=pytz.utc)
+            start_time = d.astimezone(pytz.timezone(
+                'Asia/Kolkata')).strftime('%d-%b-%Y %I:%M %p')
+            final_contest_list.append(
+                {'Name': i['name'], 'Site': i['site'], 'Time': start_time, 'Link': i['url']})
+    data = "\tUpcoming Contests\n"
+    j = 0
+    for j, i in enumerate(final_contest_list):
+        if j > 5:
+            break
+        data += f"\nName: {i['Name']}\nSite: {i['Site']}\nTime: {i['Time']}\nLink: {i['Link']}\n"
+
+    return data, j
+
+
+def getContest_24():
+    r = requests.get('https://kontests.net/api/v1/all')
+    data = r.json()
+    contests = []
+    for i in data:
+        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode'] and i["in_24_hours"] == "Yes":
             contests.append(i)
 
     final_contest_list = list()
@@ -44,7 +76,7 @@ def getContest():
     for i in final_contest_list:
         data += f"\nName: {i['Name']}\nSite: {i['Site']}\nTime: {i['Time']}\nLink: {i['Link']}\n"
 
-    return data
+    return data, len(final_contest_list)
 
 
 def detect_intent_from_text(text, session_id, language_code='en'):
@@ -63,12 +95,20 @@ def bot():
     resp = MessagingResponse()
     msg = resp.message()
     responded = False
-    contests = getContest()
+    contests, l = getContest()
+    contests_24, l_24 = getContest_24()
     if 'contest' in incoming_msg:
         # return a quote
-        r = requests.get('https://kontests.net/api/v1/all')
-        if r.status_code == 200:
+        if l != 0:
             data = contests
+        else:
+            data = 'No contest right now'
+        msg.body(data)
+    elif 'site' in incoming_msg or 'sites' in incoming_msg or 'websites' in incoming_msg or 'website' in incoming_msg:
+        msg.body("\n1. CodeForces\n2. CodeChef\n3. LeetCode")
+    elif '24' in incoming_msg:
+        if l_24 != 0:
+            data = contests_24
         else:
             data = 'No contest in upcoming 24 hours'
         msg.body(data)
