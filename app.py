@@ -3,7 +3,7 @@ from flask import Flask, request
 import requests
 import time
 import os
-import dialogflow_v2 as dialogflow
+from google.cloud import dialogflow_v2 as dialogflow
 import asyncio
 import pytz
 from pytz import timezone
@@ -12,10 +12,10 @@ from backports.datetime_fromisoformat import MonkeyPatch
 MonkeyPatch.patch_fromisoformat()
 app = Flask(__name__)
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "your private key file (json) format path"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "mystical-accord-329309-a010cb2b09dd.json"
 
 dialogflow_session_client = dialogflow.SessionsClient()
-PROJECT_ID = "your google project id"
+PROJECT_ID = "mystical-accord-329309"
 
 
 def getContest():
@@ -23,18 +23,20 @@ def getContest():
     data = r.json()
     contests = []
     for i in data:
-        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode']:
+        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode', 'AtCoder']:
             contests.append(i)
 
     final_contest_list = list()
+    flag = 0
     for i in contests:
+        flag = 1 if i['site'] == 'CodeChef' else 0
         contest_time = datetime.strptime(
-            i['start_time'], '%Y-%m-%dT%H:%M:%S.%fz')
+            i['start_time'], '%Y-%m-%d %H:%M:%S %Z') if flag else datetime.strptime(i['start_time'], '%Y-%m-%dT%H:%M:%S.%fz')
         now_time = datetime.now()
         if (contest_time.day >= now_time.day and contest_time.month >= now_time.month and contest_time.year >= now_time.year):
             now_asia = contest_time.astimezone(timezone('Asia/Kolkata'))
             # we need to strip 'Z' before parsing
-            d = datetime.fromisoformat(
+            d = now_asia if flag else datetime.fromisoformat(
                 i['start_time'][:-1]).replace(tzinfo=pytz.utc)
             start_time = d.astimezone(pytz.timezone(
                 'Asia/Kolkata')).strftime('%d-%b-%Y %I:%M %p')
@@ -55,24 +57,26 @@ def getContest_24():
     data = r.json()
     contests = []
     for i in data:
-        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode'] and i["in_24_hours"] == "Yes":
+        if i['site'] in ['CodeChef', 'CodeForces', 'LeetCode', 'AtCoder'] and i["in_24_hours"] == "Yes":
             contests.append(i)
 
     final_contest_list = list()
+    flag = 0
     for i in contests:
+        flag = 1 if i['site'] == 'CodeChef' else 0
         contest_time = datetime.strptime(
-            i['start_time'], '%Y-%m-%dT%H:%M:%S.%fz')
+            i['start_time'], '%Y-%m-%d %H:%M:%S %Z') if flag else datetime.strptime(i['start_time'], '%Y-%m-%dT%H:%M:%S.%fz')
         now_time = datetime.now()
         if (contest_time.day >= now_time.day and contest_time.month >= now_time.month and contest_time.year >= now_time.year):
             now_asia = contest_time.astimezone(timezone('Asia/Kolkata'))
             # we need to strip 'Z' before parsing
-            d = datetime.fromisoformat(
+            d = now_asia if flag else datetime.fromisoformat(
                 i['start_time'][:-1]).replace(tzinfo=pytz.utc)
             start_time = d.astimezone(pytz.timezone(
                 'Asia/Kolkata')).strftime('%d-%b-%Y %I:%M %p')
             final_contest_list.append(
                 {'Name': i['name'], 'Site': i['site'], 'Time': start_time, 'Link': i['url']})
-    data = "\tUpcoming Contests in 24 hours \n"
+    data = "\tUpcoming Contests in 24 hours\n"
     for i in final_contest_list:
         data += f"\nName: {i['Name']}\nSite: {i['Site']}\nTime: {i['Time']}\nLink: {i['Link']}\n"
 
@@ -105,7 +109,11 @@ def bot():
             data = 'No contest right now'
         msg.body(data)
     elif 'site' in incoming_msg or 'sites' in incoming_msg or 'websites' in incoming_msg or 'website' in incoming_msg:
-        msg.body("\n1. CodeForces\n2. CodeChef\n3. LeetCode")
+        sites = ['CodeChef', 'CodeForces', 'LeetCode', 'AtCoder']
+        st = ''
+        for i in range(len(sites)):
+            st += f"\n{i+1}. {sites[i]}"
+        msg.body(st)
     elif '24' in incoming_msg:
         if l_24 != 0:
             data = contests_24
