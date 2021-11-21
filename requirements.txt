@@ -5,4 +5,4 @@ twilio==7.1.0
 backports.statistics==0.1.0
 gunicorn==20.1.0
 backports-datetime-fromisoformat
-dialogflow
+google-cloud-dialogflow
